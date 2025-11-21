@@ -3,11 +3,15 @@ export default defineNuxtConfig({
   // https://nuxt.com/modules
   modules: [
     '@nuxthub/core',
-    '@nuxt/eslint'
+    '@nuxt/eslint',
+    '@nuxt/ui'
   ],
 
   // https://devtools.nuxt.com
   devtools: { enabled: true },
+
+  // CSS
+  css: ['@/assets/css/main.css'],
 
   // Env variables - https://nuxt.com/docs/getting-started/configuration#environment-variables-and-private-tokens
   runtimeConfig: {
@@ -16,12 +20,13 @@ export default defineNuxtConfig({
       helloText: 'Hello from the Edge 👋'
     }
   },
-  // https://nuxt.com/docs/getting-started/upgrade#testing-nuxt-4
-  future: { compatibilityVersion: 4 },
   compatibilityDate: '2025-03-01',
 
   // https://hub.nuxt.com/docs/getting-started/installation#options
-  hub: {},
+  hub: {
+    database: true,
+    blob: true
+  },
 
   // Development config
   eslint: {

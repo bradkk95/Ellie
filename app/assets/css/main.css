@@ -1,0 +1,7 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/* Remove text glow/shadow effects */
+body, h1, h2, h3, h4, h5, h6, p, span, div, a, button {
+  text-shadow: none !important;
+}
