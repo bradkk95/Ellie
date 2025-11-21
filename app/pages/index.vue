@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-const colorMode = useColorMode()
-const { data: wishlistData, refresh } = await useFetch('/api/wishlist')
-const { data: photosData } = await useFetch('/api/photos')
+const colorMode = useColorMode();
+const { data: wishlistData, refresh } = await useFetch("/api/wishlist");
+const { data: photosData } = await useFetch("/api/photos");
 
 function processImageUrl(url: string) {
-  if (!url) return ''
-  if (url.startsWith('http')) return url
-  const path = url.startsWith('/') ? url.substring(1) : url
-  return `/api/photos/serve/${path}`
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  const path = url.startsWith("/") ? url.substring(1) : url;
+  return `/api/photos/serve/${path}`;
 }
 
 const activeWishlistItems = computed(() =>
@@ -18,396 +18,411 @@ const activeWishlistItems = computed(() =>
     .filter((item: any) => !item.purchased)
     .map((item: any) => ({
       ...item,
-      image_url: processImageUrl(item.image_url)
+      image_url: processImageUrl(item.image_url),
     }))
-)
+);
 
 const purchasedItems = computed(() =>
   (wishlistData.value?.results || [])
     .filter((item: any) => item.purchased)
     .map((item: any) => ({
       ...item,
-      image_url: processImageUrl(item.image_url)
+      image_url: processImageUrl(item.image_url),
     }))
-)
+);
 
 const photos = computed(() =>
   (photosData.value?.results || []).map((photo: any) => ({
     ...photo,
-    image_url: processImageUrl(photo.image_url)
+    image_url: processImageUrl(photo.image_url),
   }))
-)
+);
 
-const showPurchased = ref(false)
-const purchasingName = ref('')
-const showPurchaseForm = ref(false)
-const selectedItem = ref<any>(null)
-const showImageModal = ref(false)
-const selectedImage = ref<string>('')
+const showPurchased = ref(false);
+const purchasingName = ref("");
+const showPurchaseForm = ref(false);
+const selectedItem = ref<any>(null);
+const showImageModal = ref(false);
+const selectedImage = ref<string>("");
 
 // Responsive values that update on resize
-const windowWidth = ref(1024) // Start with desktop default for SSR
-const isClient = ref(false)
+const windowWidth = ref(
+  typeof window !== "undefined" ? window.innerWidth : 1024
+);
 
 const photosContainerHeight = computed(() => {
   // Mobile: just 100vh (one screen), desktop: scale with photos
-  if (!isClient.value) return 600 // SSR default
-  if (windowWidth.value < 768) return 100
-  const multiplier = windowWidth.value < 1024 ? 100 : 120
-  return Math.max(150, photos.value.length * multiplier)
-})
+  if (windowWidth.value < 768) return 100;
+  const multiplier = windowWidth.value < 1024 ? 100 : 120;
+  return Math.max(150, photos.value.length * multiplier);
+});
 
 const santaSectionHeight = computed(() => {
-  if (!isClient.value) return '200vh' // SSR default
   return windowWidth.value < 768
-    ? '100vh'
+    ? "100vh"
     : windowWidth.value < 1024
-      ? '175vh'
-      : '200vh'
-})
+    ? "175vh"
+    : "200vh";
+});
 
-const stores = {
-  amazon: { name: 'Amazon', logo: '📦' },
-  target: { name: 'Target', logo: '🎯' },
-  walmart: { name: 'Walmart', logo: '🛒' },
-  other: { name: 'Other', logo: '🎁' }
+// Update window width on resize
+if (typeof window !== "undefined") {
+  window.addEventListener("resize", () => {
+    windowWidth.value = window.innerWidth;
+  });
 }
 
+const stores = {
+  amazon: { name: "Amazon", logo: "📦" },
+  target: { name: "Target", logo: "🎯" },
+  walmart: { name: "Walmart", logo: "🛒" },
+  other: { name: "Other", logo: "🎁" },
+};
+
 function getStoreInfo(store: string) {
-  return stores[store as keyof typeof stores] || stores.other
+  return stores[store as keyof typeof stores] || stores.other;
 }
 
 function openPurchaseForm(item: any) {
-  selectedItem.value = item
-  showPurchaseForm.value = true
-  purchasingName.value = ''
+  selectedItem.value = item;
+  showPurchaseForm.value = true;
+  purchasingName.value = "";
 }
 
 function openImageModal(imageUrl: string) {
-  selectedImage.value = imageUrl
-  showImageModal.value = true
+  selectedImage.value = imageUrl;
+  showImageModal.value = true;
 }
 
 function getRotation(index: number) {
-  const rotations = [-5, 3, -2, 4, -3, 2, -4, 5]
-  return rotations[index % rotations.length]
+  const rotations = [-5, 3, -2, 4, -3, 2, -4, 5];
+  return rotations[index % rotations.length];
 }
 
 async function markAsPurchased() {
   if (!purchasingName.value.trim()) {
-    alert('Please enter your name')
-    return
+    alert("Please enter your name");
+    return;
   }
 
   try {
     await $fetch(`/api/wishlist/${selectedItem.value.id}/purchase`, {
-      method: 'POST',
+      method: "POST",
       body: {
         purchased: true,
-        purchased_by: purchasingName.value.trim()
-      }
-    })
+        purchased_by: purchasingName.value.trim(),
+      },
+    });
 
-    showPurchaseForm.value = false
-    selectedItem.value = null
-    purchasingName.value = ''
-    await refresh()
-  }
-  catch (error) {
-    alert('Error marking item as purchased')
+    showPurchaseForm.value = false;
+    selectedItem.value = null;
+    purchasingName.value = "";
+    await refresh();
+  } catch (error) {
+    alert("Error marking item as purchased");
   }
 }
 
 async function unmarkPurchased(item: any) {
   try {
     await $fetch(`/api/wishlist/${item.id}/purchase`, {
-      method: 'POST',
+      method: "POST",
       body: {
         purchased: false,
-        purchased_by: null
-      }
-    })
+        purchased_by: null,
+      },
+    });
 
-    await refresh()
-  }
-  catch (error) {
-    alert('Error unmarking item')
+    await refresh();
+  } catch (error) {
+    alert("Error unmarking item");
   }
 }
 
 // GSAP Animations
 onMounted(() => {
-  // Set client flag and actual window width
-  isClient.value = true
-  windowWidth.value = window.innerWidth
-
-  // Update window width on resize
-  const handleResize = () => {
-    windowWidth.value = window.innerWidth
-  }
-  window.addEventListener('resize', handleResize)
-
-  gsap.registerPlugin(ScrollTrigger)
+  gsap.registerPlugin(ScrollTrigger);
 
   // Responsive scroll distances based on screen size
-  const isMobile = windowWidth.value < 768
-  const isTablet = windowWidth.value >= 768 && windowWidth.value < 1024
+  const isMobile = windowWidth.value < 768;
+  const isTablet = windowWidth.value >= 768 && windowWidth.value < 1024;
 
   // Adjust scroll distances for different screen sizes
   const santaVideoScrollDistance = isMobile
-    ? '+=100vh'
+    ? "+=100vh"
     : isTablet
-      ? '+=200vh'
-      : '+=300vh'
+    ? "+=200vh"
+    : "+=300vh";
   const santaTextScrollDistance = isMobile
-    ? '+=80vh'
+    ? "+=80vh"
     : isTablet
-      ? '+=150vh'
-      : '+=200vh'
+    ? "+=150vh"
+    : "+=200vh";
 
   // Hero video scale effect on scroll
-  gsap.to('.hero-video-container', {
+  gsap.to(".hero-video-container", {
     scrollTrigger: {
-      trigger: '.hero-video-section',
-      start: 'top top',
-      end: 'bottom top',
-      scrub: 1
+      trigger: ".hero-video-section",
+      start: "top top",
+      end: "bottom top",
+      scrub: 1,
     },
     scale: 0.85,
-    borderRadius: '24px',
-    ease: 'none'
-  })
+    borderRadius: "24px",
+    ease: "none",
+  });
 
   // Santa video scale and border radius animation
-  const santaVideoAnimation = gsap.to('.santa-video-container', {
-    width: '95vw',
-    height: '95vh',
-    borderRadius: '0px',
-    ease: 'none',
-    paused: true
-  })
+  const santaVideoAnimation = gsap.to(".santa-video-container", {
+    width: "95vw",
+    height: "95vh",
+    borderRadius: "0px",
+    ease: "none",
+    paused: true,
+  });
 
   ScrollTrigger.create({
-    trigger: '.santa-video-section',
-    start: 'top top',
+    trigger: ".santa-video-section",
+    start: "top top",
     end: santaVideoScrollDistance,
     scrub: 1,
-    animation: santaVideoAnimation
-  })
+    animation: santaVideoAnimation,
+  });
 
   // Fade-in letters 1 by 1
-  const santaTextTimeline = gsap.timeline({ paused: true })
+  const santaTextTimeline = gsap.timeline({ paused: true });
 
-  santaTextTimeline.to('.letter', {
+  santaTextTimeline.to(".letter", {
     opacity: 1,
     duration: 0.4,
     stagger: 0.25,
-    ease: 'power1.out'
-  })
+    ease: "power1.out",
+  });
 
   // Tie letters to scroll
   ScrollTrigger.create({
-    trigger: '.santa-video-section',
-    start: 'top top',
+    trigger: ".santa-video-section",
+    start: "top top",
     end: santaTextScrollDistance,
     scrub: 1,
-    animation: santaTextTimeline
+    animation: santaTextTimeline,
     // Add markers in development to debug scroll positions
     // markers: true,
-  })
+  });
 
   // Prevent content from scrolling too far past viewport
   ScrollTrigger.config({
     limitCallbacks: true,
-    ignoreMobileResize: true // Prevent recalc on mobile keyboard open
-  })
+    ignoreMobileResize: true, // Prevent recalc on mobile keyboard open
+  });
 
   // Hero section animations
-  const heroTl = gsap.timeline({ delay: 0.5 })
+  const heroTl = gsap.timeline({ delay: 0.5 });
 
   // Fade in the main title
-  heroTl.from('.hero-title', {
+  heroTl.from(".hero-title", {
     y: 50,
     opacity: 0,
     duration: 1.2,
-    ease: 'power3.out'
-  })
+    ease: "power3.out",
+  });
 
   // Typewriter effect for subtitle
-  const text = 'Welcome to my Christmas Wishlist'
-  const typewriterEl = document.querySelector('.typewriter-text')
+  const text = "Welcome to my Christmas Wishlist";
+  const typewriterEl = document.querySelector(".typewriter-text");
   if (typewriterEl) {
-    let charIndex = 0
+    let charIndex = 0;
     const typewriterAnimation = () => {
       if (charIndex < text.length) {
-        typewriterEl.textContent += text.charAt(charIndex)
-        charIndex++
+        typewriterEl.textContent += text.charAt(charIndex);
+        charIndex++;
       }
-    }
+    };
 
     heroTl.to(
       {},
       {
         duration: text.length * 0.08,
         onUpdate: function () {
-          const progress = Math.floor(this.progress() * text.length)
+          const progress = Math.floor(this.progress() * text.length);
           if (progress > charIndex) {
-            typewriterAnimation()
+            typewriterAnimation();
           }
-        }
+        },
       },
-      '+=0.5'
-    )
+      "+=0.5"
+    );
   }
 
   // Animate wishlist header
-  gsap.from('.wishlist-header', {
+  gsap.from(".wishlist-header", {
     scrollTrigger: {
-      trigger: '.wishlist-header',
-      start: 'top 80%'
+      trigger: ".wishlist-header",
+      start: "top 80%",
     },
     scale: 0.8,
     opacity: 0,
     duration: 0.6,
-    ease: 'back.out(1.7)'
-  })
+    ease: "back.out(1.7)",
+  });
 
   // Stacked tilted photos effect - reveal on scroll (responsive)
-  const stackedPhotos = gsap.utils.toArray('.stacked-photo')
+  const stackedPhotos = gsap.utils.toArray(".stacked-photo");
   stackedPhotos.forEach((photo: any, index: number) => {
-    if (index === 0) return // First photo stays visible
+    if (index === 0) return; // First photo stays visible
 
     // Responsive spacing based on screen size - tighter for mobile since section is 100vh
-    const baseSpacing = isMobile ? 0 : isTablet ? 800 : 1000
-    const animationDuration = isMobile ? 100 : isTablet ? 400 : 500
+    const baseSpacing = isMobile ? 0 : isTablet ? 800 : 1000;
+    const animationDuration = isMobile ? 100 : isTablet ? 400 : 500;
 
-    const startOffset = index * baseSpacing
-    const endOffset = startOffset + animationDuration
+    const startOffset = index * baseSpacing;
+    const endOffset = startOffset + animationDuration;
 
     gsap.fromTo(
       photo,
       {
-        y: '100vh',
-        opacity: 0
+        y: "100vh",
+        opacity: 0,
       },
       {
         y: 0,
         opacity: 1,
         scrollTrigger: {
-          trigger: '.stacked-photos-container',
+          trigger: ".stacked-photos-container",
           start: `top+=${startOffset}px center`,
           end: `top+=${endOffset}px center`,
-          scrub: 1
+          scrub: 1,
         },
-        ease: 'none'
+        ease: "none",
       }
-    )
-  })
+    );
+  });
 
   // Animate wishlist items with scroll trigger
-  gsap.utils.toArray('.wishlist-item').forEach((item: any, index: number) => {
+  gsap.utils.toArray(".wishlist-item").forEach((item: any, index: number) => {
     gsap.from(item, {
       scrollTrigger: {
         trigger: item,
-        start: 'top 80%',
-        toggleActions: 'play none none reverse'
+        start: "top 80%",
+        toggleActions: "play none none reverse",
       },
       x: index % 2 === 0 ? -100 : 100,
       opacity: 0,
       rotation: index % 2 === 0 ? -5 : 5,
       duration: 0.8,
-      ease: 'power3.out'
-    })
-  })
+      ease: "power3.out",
+    });
+  });
 
   // Bouncing priority badges
-  gsap.utils.toArray('.priority-badge').forEach((badge: any, index: number) => {
+  gsap.utils.toArray(".priority-badge").forEach((badge: any, index: number) => {
     gsap.from(badge, {
       scrollTrigger: {
         trigger: badge,
-        start: 'top 80%'
+        start: "top 80%",
       },
       scale: 0,
       rotation: 360,
       duration: 0.8,
       delay: index * 0.1,
-      ease: 'elastic.out(1, 0.5)'
-    })
-  })
+      ease: "elastic.out(1, 0.5)",
+    });
+  });
+
+  // Floating animation for snowflakes
+  gsap.utils.toArray(".snowflake").forEach((flake: any, index: number) => {
+    gsap.to(flake, {
+      x: `+=${Math.random() * 100 - 50}`,
+      duration: 3 + Math.random() * 2,
+      repeat: -1,
+      yoyo: true,
+      ease: "sine.inOut",
+      delay: Math.random() * 2,
+    });
+  });
 
   // Sparkle effect on buttons hover
-  const buttons = document.querySelectorAll('button, a')
+  const buttons = document.querySelectorAll("button, a");
   buttons.forEach((button) => {
-    button.addEventListener('mouseenter', () => {
+    button.addEventListener("mouseenter", () => {
       gsap.to(button, {
         scale: 1.05,
         duration: 0.3,
-        ease: 'power2.out'
-      })
-    })
-    button.addEventListener('mouseleave', () => {
+        ease: "power2.out",
+      });
+    });
+    button.addEventListener("mouseleave", () => {
       gsap.to(button, {
         scale: 1,
         duration: 0.3,
-        ease: 'power2.out'
-      })
-    })
-  })
+        ease: "power2.out",
+      });
+    });
+  });
 
   // 🎄 CHRISTMAS-THEMED ANIMATIONS 🎄
 
   // Wiggling gift emoji (target the specific gift emoji span)
   const giftEmoji = document.querySelector(
-    'header > div > div > span:last-child'
-  )
+    "header > div > div > span:last-child"
+  );
   if (giftEmoji) {
     gsap.to(giftEmoji, {
       rotation: -10,
       duration: 0.5,
       repeat: -1,
       yoyo: true,
-      ease: 'power1.inOut',
-      transformOrigin: 'center bottom'
-    })
+      ease: "power1.inOut",
+      transformOrigin: "center bottom",
+    });
   }
 
+  // Spinning snowflakes occasionally
+  gsap.utils.toArray(".snowflake").forEach((flake: any) => {
+    gsap.to(flake, {
+      rotation: 360,
+      duration: 8 + Math.random() * 4,
+      repeat: -1,
+      ease: "none",
+    });
+  });
+
   // Christmas sparkle on store badges
-  const badges = document.querySelectorAll('.bg-green-50, .bg-green-900')
+  const badges = document.querySelectorAll(".bg-green-50, .bg-green-900");
   badges.forEach((badge, badgeIndex) => {
     gsap.to(badge, {
-      boxShadow: '0 0 15px rgba(34, 197, 94, 0.5)',
+      boxShadow: "0 0 15px rgba(34, 197, 94, 0.5)",
       duration: 1.5,
       repeat: -1,
       yoyo: true,
       delay: badgeIndex * 0.3,
-      ease: 'sine.inOut'
-    })
-  })
+      ease: "sine.inOut",
+    });
+  });
 
   // Refresh ScrollTrigger on window resize for responsive adjustments
-  let resizeTimeout: ReturnType<typeof setTimeout>
-  const handleScrollResize = () => {
-    clearTimeout(resizeTimeout)
+  let resizeTimeout: ReturnType<typeof setTimeout>;
+  const handleResize = () => {
+    clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
-      ScrollTrigger.refresh()
-    }, 250)
-  }
+      ScrollTrigger.refresh();
+    }, 250);
+  };
 
-  window.addEventListener('resize', handleScrollResize)
+  window.addEventListener("resize", handleResize);
 
   // Cleanup on unmount
   onUnmounted(() => {
-    window.removeEventListener('resize', handleResize)
-    window.removeEventListener('resize', handleScrollResize)
-    ScrollTrigger.getAll().forEach(trigger => trigger.kill())
-  })
-})
+    window.removeEventListener("resize", handleResize);
+    ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
+  });
+});
 
 // Watch for purchased section showing and animate it
 watch(showPurchased, async (newValue) => {
   if (newValue) {
-    await nextTick()
-    const purchasedSection = document.querySelector('.purchased-section')
+    await nextTick();
+    const purchasedSection = document.querySelector(".purchased-section");
     if (purchasedSection) {
       gsap.fromTo(
         purchasedSection,
@@ -415,7 +430,7 @@ watch(showPurchased, async (newValue) => {
           scale: 0.8,
           opacity: 0,
           y: 50,
-          rotationX: -15
+          rotationX: -15,
         },
         {
           scale: 1,
@@ -423,31 +438,31 @@ watch(showPurchased, async (newValue) => {
           y: 0,
           rotationX: 0,
           duration: 0.8,
-          ease: 'back.out(1.7)'
+          ease: "back.out(1.7)",
         }
-      )
+      );
 
       // Animate individual purchased items
-      const purchasedItems = document.querySelectorAll('.purchased-item')
+      const purchasedItems = document.querySelectorAll(".purchased-item");
       purchasedItems.forEach((item: any, index: number) => {
         gsap.fromTo(
           item,
           {
             x: -50,
-            opacity: 0
+            opacity: 0,
           },
           {
             x: 0,
             opacity: 1,
             duration: 0.5,
             delay: 0.3 + index * 0.1,
-            ease: 'power2.out'
+            ease: "power2.out",
           }
-        )
-      })
+        );
+      });
     }
   }
-})
+});
 </script>
 
 <template>
@@ -485,6 +500,23 @@ watch(showPurchased, async (newValue) => {
       </div>
     </nav>
 
+    <!-- Snowflakes -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-50">
+      <div
+        v-for="n in 30"
+        :key="n"
+        class="snowflake"
+        :style="{
+          left: `${Math.random() * 100}%`,
+          animationDuration: `${Math.random() * 10 + 10}s`,
+          animationDelay: `${Math.random() * -20}s`,
+          fontSize: `${Math.random() * 1 + 0.5}rem`,
+        }"
+      >
+        ❄
+      </div>
+    </div>
+
     <!-- Hero Video Section -->
     <section
       id="home"
@@ -501,14 +533,11 @@ watch(showPurchased, async (newValue) => {
           preload="auto"
           class="absolute inset-0 w-full h-full object-cover"
         >
-          <source
-            src="/snow.mp4"
-            type="video/mp4"
-          >
+          <source src="/snow.mp4" type="video/mp4" />
         </video>
 
         <!-- Overlay for better text visibility -->
-        <div class="absolute inset-0 bg-black/30" />
+        <div class="absolute inset-0 bg-black/30"></div>
       </div>
 
       <!-- Dark Mode Toggle -->
@@ -541,7 +570,8 @@ watch(showPurchased, async (newValue) => {
           class="hero-subtitle text-2xl sm:text-3xl text-white font-light"
           style="text-shadow: 1px 2px 4px rgba(0, 0, 0, 0.5)"
         >
-          <span class="typewriter-text" /><span class="typewriter-cursor">|</span>
+          <span class="typewriter-text"></span
+          ><span class="typewriter-cursor">|</span>
         </p>
       </div>
     </section>
@@ -549,10 +579,7 @@ watch(showPurchased, async (newValue) => {
     <!-- Main Content -->
     <main class="relative z-10">
       <!-- Photos Introduction and Stacked Photos Section -->
-      <div
-        v-if="photos.length > 0"
-        id="photos"
-      >
+      <div v-if="photos.length > 0" id="photos">
         <div
           class="stacked-photos-container relative"
           :style="`height: ${photosContainerHeight}vh;`"
@@ -597,7 +624,7 @@ watch(showPurchased, async (newValue) => {
                       transform: `rotate(${getRotation(index)}deg) translateY(${
                         index * 20
                       }px) translateX(${index * 10}px)`,
-                      zIndex: index
+                      zIndex: index,
                     }"
                   >
                     <div
@@ -607,7 +634,7 @@ watch(showPurchased, async (newValue) => {
                         :src="photo.image_url"
                         :alt="photo.caption || `Photo ${index + 1}`"
                         class="w-full h-full object-cover"
-                      >
+                      />
                     </div>
                   </div>
                 </div>
@@ -634,10 +661,7 @@ watch(showPurchased, async (newValue) => {
               playsinline
               class="w-full h-full object-cover rounded-3xl"
             >
-              <source
-                src="/santa.mp4"
-                type="video/mp4"
-              >
+              <source src="/santa.mp4" type="video/mp4" />
             </video>
             <div
               class="santa-text-container absolute inset-0 flex items-center justify-center pointer-events-none"
@@ -688,10 +712,7 @@ watch(showPurchased, async (newValue) => {
         </div>
       </div>
 
-      <div
-        id="wishlist"
-        class="max-w-7xl mx-auto px-2 md:px-4 py-4 md:py-6"
-      >
+      <div id="wishlist" class="max-w-7xl mx-auto px-2 md:px-4 py-4 md:py-6">
         <div
           class="wishlist-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 md:mb-6 bg-white dark:bg-gray-800 rounded-lg shadow p-3 md:p-4 border-2 border-red-200 dark:border-red-800"
         >
@@ -726,7 +747,7 @@ watch(showPurchased, async (newValue) => {
                     :alt="wish.item_name"
                     class="w-full sm:w-40 h-40 object-cover rounded-lg border-4 border-red-200 dark:border-red-800 cursor-pointer hover:opacity-90 transition-opacity"
                     @click="openImageModal(wish.image_url)"
-                  >
+                  />
                   <div
                     v-else
                     class="w-full sm:w-40 h-40 bg-gradient-to-br from-red-100 to-green-100 dark:from-red-900 dark:to-green-900 rounded-lg flex items-center justify-center border-4 border-red-200 dark:border-red-800"
@@ -739,9 +760,12 @@ watch(showPurchased, async (newValue) => {
                     class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
                   >
                     <div
-                      class="bg-white/90 dark:bg-gray-800/90 rounded-full p-2 shadow-lg flex items-center justify-center w-8 h-8"
+                      class="bg-white/90 dark:bg-gray-800/90 rounded-full p-2 shadow-lg"
                     >
-                      <span class="text-gray-700 dark:text-gray-200">⤢</span>
+                      <Icon
+                        name="i-heroicons-arrows-pointing-out"
+                        class="w-4 h-4 text-gray-700 dark:text-gray-200"
+                      />
                     </div>
                   </div>
                   <!-- Priority Badge -->
@@ -802,10 +826,7 @@ watch(showPurchased, async (newValue) => {
         </div>
 
         <!-- Purchased Items -->
-        <div
-          v-if="showPurchased && purchasedItems.length > 0"
-          class="mt-8"
-        >
+        <div v-if="showPurchased && purchasedItems.length > 0" class="mt-8">
           <div
             class="purchased-section bg-gradient-to-r from-green-100 to-red-100 dark:from-gray-900 dark:to-gray-900 rounded-lg shadow-lg p-6 border-4 border-green-400 dark:border-green-800"
           >
@@ -832,7 +853,7 @@ watch(showPurchased, async (newValue) => {
                       :alt="wish.item_name"
                       class="w-full sm:w-20 h-40 sm:h-20 object-cover rounded border-2 border-green-300 dark:border-green-700 cursor-pointer hover:opacity-90 transition-opacity"
                       @click="openImageModal(wish.image_url)"
-                    >
+                    />
                     <div
                       v-else
                       class="w-full sm:w-20 h-40 sm:h-20 bg-green-100 dark:bg-green-900 rounded flex items-center justify-center"
@@ -845,9 +866,12 @@ watch(showPurchased, async (newValue) => {
                       class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
                     >
                       <div
-                        class="bg-white/90 dark:bg-gray-800/90 rounded-full p-2 shadow-lg flex items-center justify-center w-8 h-8"
+                        class="bg-white/90 dark:bg-gray-800/90 rounded-full p-2 shadow-lg"
                       >
-                        <span class="text-gray-700 dark:text-gray-200">⤢</span>
+                        <Icon
+                          name="i-heroicons-arrows-pointing-out"
+                          class="w-4 h-4 text-gray-700 dark:text-gray-200"
+                        />
                       </div>
                     </div>
                   </div>
@@ -892,17 +916,13 @@ watch(showPurchased, async (newValue) => {
             {{ selectedItem?.item_name }}
           </p>
 
-          <form
-            class="space-y-4"
-            @submit.prevent="markAsPurchased"
-          >
-            <div class="space-y-2">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Your Name <span class="text-red-500">*</span></label>
+          <form @submit.prevent="markAsPurchased" class="space-y-4">
+            <UFormField label="Your Name" required>
               <UInput
                 v-model="purchasingName"
                 placeholder="e.g., Mom, Dad, Santa's Helper..."
               />
-            </div>
+            </UFormField>
 
             <div class="flex gap-2 justify-end">
               <UButton
@@ -922,10 +942,7 @@ watch(showPurchased, async (newValue) => {
     </UModal>
 
     <!-- Image Modal -->
-    <UModal
-      v-model:open="showImageModal"
-      class="max-w-5xl"
-    >
+    <UModal v-model:open="showImageModal" class="max-w-5xl">
       <template #header>
         <div class="flex items-center gap-2">
           <span class="text-2xl">🖼️</span>
@@ -941,7 +958,7 @@ watch(showPurchased, async (newValue) => {
             :src="selectedImage"
             alt="Full size preview"
             class="w-full h-auto rounded-lg"
-          >
+          />
         </div>
       </template>
     </UModal>
@@ -949,6 +966,40 @@ watch(showPurchased, async (newValue) => {
 </template>
 
 <style scoped>
+@keyframes snow {
+  0% {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(360deg);
+    opacity: 0.8;
+  }
+}
+
+.snowflake {
+  position: fixed;
+  top: -10vh;
+  color: rgba(150, 180, 220, 0.6);
+  animation: snow linear infinite;
+  user-select: none;
+  pointer-events: none;
+}
+
+:global(.dark) .snowflake {
+  color: rgba(200, 230, 255, 0.7);
+}
+
+/* Hide snowflakes in hero section */
+.hero-video-section ~ * .snowflake,
+.hero-video-section .snowflake {
+  display: none;
+}
+
+.snowflake {
+  clip-path: inset(100vh 0 0 0);
+}
+
 /* Stacked photo effect */
 :deep(.stacked-photo) {
   will-change: transform, opacity;

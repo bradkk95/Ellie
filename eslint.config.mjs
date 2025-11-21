@@ -23,7 +23,8 @@ export default withNuxt(
       'vue/singleline-html-element-content-newline': 'off',
       'vue/multi-word-component-names': 'off',
       'vue/require-prop-types': 'off',
-      'vue/attributes-order': 'off'
+      'vue/attributes-order': 'off',
+      'vue/object-property-newline': 'off'
     }
   }
 )

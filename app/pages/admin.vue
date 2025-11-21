@@ -12,7 +12,6 @@ const editingPhoto = ref<any>(null)
 const showForm = ref(false)
 const showPhotoForm = ref(false)
 const activeTab = ref('wishlist')
-const isDragging = ref(false)
 
 // Check for stored authentication on mount
 onMounted(() => {
@@ -54,8 +53,8 @@ const photoFormData = ref({
   order_index: 0
 })
 
-const selectedFile = ref<File | File[] | null>(null)
-const selectedItemImageFile = ref<File | File[] | null>(null)
+const selectedFile = ref<File | File[] | null | undefined>(null)
+const selectedItemImageFile = ref<File | File[] | null | undefined>(null)
 const uploadingFile = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
@@ -195,7 +194,7 @@ function openEditPhotoForm(photo: any) {
   showPhotoForm.value = true
 }
 
-function getFileFromValue(value: File | File[] | null): File | null {
+function getFileFromValue(value: File | File[] | null | undefined): File | null {
   if (!value) return null
   if (Array.isArray(value)) return value[0] || null
   return value
@@ -505,7 +504,7 @@ async function onPhotosReorder() {
 
         <form
           class="space-y-4"
-          @submit.prevent="verifyPassword"
+          @submit.prevent="() => verifyPassword()"
         >
           <UFormField
             label="Password"
@@ -649,78 +648,78 @@ async function onPhotosReorder() {
                     :key="item.id"
                     class="flex items-center gap-3 p-3 border rounded hover:border-primary-500 transition-colors"
                   >
-                        <div class="drag-handle cursor-move p-2">
-                          <Icon
-                            name="i-heroicons-bars-3"
-                            class="w-5 h-5"
-                          />
-                        </div>
+                    <div class="drag-handle cursor-move p-2">
+                      <Icon
+                        name="i-heroicons-bars-3"
+                        class="w-5 h-5"
+                      />
+                    </div>
 
+                    <div
+                      class="flex-1 grid grid-cols-1 md:grid-cols-6 gap-3 items-center"
+                    >
+                      <div class="flex items-center gap-2">
                         <div
-                          class="flex-1 grid grid-cols-1 md:grid-cols-6 gap-3 items-center"
+                          class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white font-bold text-sm"
                         >
-                          <div class="flex items-center gap-2">
-                            <div
-                              class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white font-bold text-sm"
-                            >
-                              {{ index + 1 }}
-                            </div>
-                            <span class="font-semibold">{{
-                              item.item_name
-                            }}</span>
-                          </div>
+                          {{ index + 1 }}
+                        </div>
+                        <span class="font-semibold">{{
+                          item.item_name
+                        }}</span>
+                      </div>
 
-                          <div>
-                            <UBadge size="sm">
-                              {{ stores.find((s) => s.value === item.store)?.logo }}
-                              {{ stores.find((s) => s.value === item.store)?.name }}
-                            </UBadge>
-                          </div>
+                      <div>
+                        <UBadge size="sm">
+                          {{ stores.find((s) => s.value === item.store)?.logo }}
+                          {{ stores.find((s) => s.value === item.store)?.name }}
+                        </UBadge>
+                      </div>
 
-                          <div>
-                            <span v-if="item.price">${{ item.price }}</span>
-                            <span
-                              v-else
-                              class="opacity-50"
-                            >-</span>
-                          </div>
+                      <div>
+                        <span v-if="item.price">${{ item.price }}</span>
+                        <span
+                          v-else
+                          class="opacity-50"
+                        >-</span>
+                      </div>
 
-                          <div>
-                            <UBadge
-                              v-if="item.purchased"
-                              color="success"
-                              size="sm"
-                            >
-                              Purchased
-                            </UBadge>
-                            <UBadge
-                              v-else
-                              size="sm"
-                            >
-                              Available
-                            </UBadge>
-                          </div>
+                      <div>
+                        <UBadge
+                          v-if="item.purchased"
+                          color="success"
+                          size="sm"
+                        >
+                          Purchased
+                        </UBadge>
+                        <UBadge
+                          v-else
+                          size="sm"
+                        >
+                          Available
+                        </UBadge>
+                      </div>
 
-                          <div v-if="item.link">
-                            <a
-                              :href="item.link"
-                              target="_blank"
-                              class="text-primary-500 hover:underline text-sm"
-                            >
-                              View Link
-                            </a>
-                          </div>
+                      <div v-if="item.link">
+                        <a
+                          :href="item.link"
+                          target="_blank"
+                          class="text-primary-500 hover:underline text-sm"
+                        >
+                          View Link
+                        </a>
+                      </div>
 
-                          <div class="flex justify-end">
-                            <UDropdownMenu :items="getItemActions(item)">
-                              <UButton
-                                variant="ghost"
-                                icon="i-heroicons-ellipsis-horizontal"
-                                size="sm"
-                                square
-                              />
-                            </UDropdownMenu>
-                          </div>
+                      <div class="flex justify-end">
+                        <UDropdownMenu :items="getItemActions(item)">
+                          <UButton
+                            variant="ghost"
+                            icon="i-heroicons-ellipsis-horizontal"
+                            size="sm"
+                            square
+                          />
+                        </UDropdownMenu>
+                      </div>
                     </div>
                   </div>
                 </VueDraggable>
@@ -768,34 +767,34 @@ async function onPhotosReorder() {
                     :key="photo.id"
                     class="flex items-center gap-4 p-3 border rounded hover:border-primary-500 transition-colors"
                   >
-                        <div class="drag-handle cursor-move p-2">
-                          <Icon
-                            name="i-heroicons-bars-3"
-                            class="w-5 h-5"
-                          />
-                        </div>
+                    <div class="drag-handle cursor-move p-2">
+                      <Icon
+                        name="i-heroicons-bars-3"
+                        class="w-5 h-5"
+                      />
+                    </div>
 
-                        <img
-                          :src="getBlobUrl(photo.image_url)"
-                          alt="Photo"
-                          class="w-20 h-20 object-cover rounded"
-                        >
+                    <img
+                      :src="getBlobUrl(photo.image_url)"
+                      alt="Photo"
+                      class="w-20 h-20 object-cover rounded"
+                    >
 
-                        <div class="flex-1">
-                          <p class="font-medium">
-                            {{ photo.caption || "No caption" }}
-                          </p>
-                        </div>
+                    <div class="flex-1">
+                      <p class="font-medium">
+                        {{ photo.caption || "No caption" }}
+                      </p>
+                    </div>
 
-                        <div>
-                          <UDropdownMenu :items="getPhotoActions(photo)">
-                            <UButton
-                              variant="ghost"
-                              icon="i-heroicons-ellipsis-horizontal"
-                              size="sm"
-                              square
-                            />
-                          </UDropdownMenu>
+                    <div>
+                      <UDropdownMenu :items="getPhotoActions(photo)">
+                        <UButton
+                          variant="ghost"
+                          icon="i-heroicons-ellipsis-horizontal"
+                          size="sm"
+                          square
+                        />
+                      </UDropdownMenu>
                     </div>
                   </div>
                 </VueDraggable>
